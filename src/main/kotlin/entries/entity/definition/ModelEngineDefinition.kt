@@ -13,6 +13,7 @@ import com.typewritermc.engine.paper.entry.entries.ConstVar
 import com.typewritermc.engine.paper.entry.entries.EntityData
 import com.typewritermc.engine.paper.entry.entries.Var
 import com.typewritermc.engine.paper.utils.Sound
+import entries.entity.ModelEngineEntity
 import entries.entity.NamedModelEngineEntity
 import org.bukkit.entity.Player
 
@@ -32,9 +33,12 @@ class ModelEngineDefinition(
     override val data: List<Ref<EntityData<*>>> = emptyList(),
     @Help("Set the model of the entity")
     val modelId: Var<String> = ConstVar(""),
+    @Help("Whether the entity is named or not, showing a nametag.")
+    val named: Var<Boolean> = ConstVar(false)
 ) : SimpleEntityDefinition {
 
     override fun create(player: Player): FakeEntity {
-        return NamedModelEngineEntity(player, displayName, modelId, ref())
+        if (named.get(player)) return NamedModelEngineEntity(player, displayName, modelId, ref())
+        return ModelEngineEntity(player, modelId)
     }
 }

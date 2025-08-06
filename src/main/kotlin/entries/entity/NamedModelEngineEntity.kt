@@ -44,8 +44,6 @@ class NamedModelEngineEntity(
     override val state: EntityState
         get() = baseEntity.state
 
-    private var previousHeight: Double = 0.0
-
     init {
         val hologramText = hologram()
         hologram.consumeProperties(
