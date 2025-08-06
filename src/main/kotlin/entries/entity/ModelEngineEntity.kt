@@ -14,6 +14,7 @@ import com.typewritermc.engine.paper.entry.entries.EntityProperty
 import com.typewritermc.engine.paper.entry.entries.Var
 import com.typewritermc.engine.paper.utils.toBukkitLocation
 import com.typewritermc.entity.entries.data.minecraft.living.ScaleProperty
+import com.typewritermc.entity.entries.data.minecraft.living.armorstand.InvisibleProperty
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.util.*
@@ -29,6 +30,7 @@ class ModelEngineEntity(
         bodyRotationController.rotationDuration = 0
         bodyRotationController.rotationDelay = 0
     }
+
     private lateinit var modeledEntity: ModeledEntity
     private lateinit var activeModel: ActiveModel
 
@@ -64,6 +66,11 @@ class ModelEngineEntity(
                             behavior.setTexture(profile)
                         }
                     }
+                }
+
+                is InvisibleProperty -> {
+                    if (property.invisible) entity.setForceHidden(player, true)
+                    else entity.setForceViewing(player, true)
                 }
 
                 else -> {
