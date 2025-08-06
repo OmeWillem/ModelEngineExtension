@@ -1,16 +1,22 @@
 package entries.entity
 
+import com.destroystokyo.paper.profile.ProfileProperty
 import com.ticxo.modelengine.api.ModelEngineAPI
 import com.ticxo.modelengine.api.entity.Dummy
 import com.ticxo.modelengine.api.model.ActiveModel
 import com.ticxo.modelengine.api.model.ModeledEntity
+import com.ticxo.modelengine.api.model.bone.BoneBehaviorTypes
 import com.typewritermc.engine.paper.entry.entity.EntityState
 import com.typewritermc.engine.paper.entry.entity.FakeEntity
 import com.typewritermc.engine.paper.entry.entity.PositionProperty
+import com.typewritermc.engine.paper.entry.entity.SkinProperty
 import com.typewritermc.engine.paper.entry.entries.EntityProperty
 import com.typewritermc.engine.paper.entry.entries.Var
 import com.typewritermc.engine.paper.utils.toBukkitLocation
+import com.typewritermc.entity.entries.data.minecraft.living.ScaleProperty
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import java.util.*
 
 
 class ModelEngineEntity(
@@ -41,6 +47,23 @@ class ModelEngineEntity(
                     entity.syncLocation(property.toBukkitLocation())
                     entity.yHeadRot = property.yaw
                     entity.xHeadRot = property.pitch
+                }
+
+                is ScaleProperty -> {
+                    activeModel.setScale(property.scale)
+                    activeModel.setHitboxScale(property.scale)
+                }
+
+                is SkinProperty -> {
+                    val profile = Bukkit.createProfile(UUID.randomUUID()).apply {
+                        setProperty(ProfileProperty("textures", property.texture, property.signature))
+                    }
+
+                    activeModel.bones.forEach { _, bone ->
+                        bone.getBoneBehavior(BoneBehaviorTypes.PLAYER_LIMB).ifPresent { behavior ->
+                            behavior.setTexture(profile)
+                        }
+                    }
                 }
 
                 else -> {
@@ -87,7 +110,9 @@ class ModelEngineEntity(
 
     fun height(): Double {
         val blueprint = ModelEngineAPI.getBlueprint(modelId) ?: return 0.0
-        return blueprint.mainHitbox.height
+        val scale = property(ScaleProperty::class)?.scale ?: 1.0
+
+        return blueprint.mainHitbox.height * scale
     }
 
 }

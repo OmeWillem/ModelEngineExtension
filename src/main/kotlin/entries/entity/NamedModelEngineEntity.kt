@@ -15,8 +15,10 @@ import com.typewritermc.engine.paper.utils.Color
 import com.typewritermc.engine.paper.utils.isFloodgate
 import com.typewritermc.engine.paper.utils.replaceTagPlaceholders
 import com.typewritermc.entity.entries.data.minecraft.display.BillboardConstraintProperty
+import com.typewritermc.entity.entries.data.minecraft.display.InterpolationDurationProperty
 import com.typewritermc.entity.entries.data.minecraft.display.TranslationProperty
 import com.typewritermc.entity.entries.data.minecraft.display.text.BackgroundColorProperty
+import com.typewritermc.entity.entries.data.minecraft.living.ScaleProperty
 import com.typewritermc.entity.entries.entity.custom.InteractionIndicatorEntity
 import com.typewritermc.entity.entries.entity.custom.namePlate
 import com.typewritermc.entity.entries.entity.custom.namePlateColor
@@ -24,6 +26,7 @@ import com.typewritermc.entity.entries.entity.custom.namePlateOffset
 import com.typewritermc.entity.entries.entity.minecraft.TextDisplayEntity
 import me.tofaa.entitylib.meta.display.AbstractDisplayMeta
 import org.bukkit.entity.Player
+import java.time.Duration
 
 class NamedModelEngineEntity(
     player: Player,
@@ -41,18 +44,22 @@ class NamedModelEngineEntity(
     override val state: EntityState
         get() = baseEntity.state
 
+    private var previousHeight: Double = 0.0
+
     init {
         val hologramText = hologram()
         hologram.consumeProperties(
             LinesProperty(hologramText),
             TranslationProperty(Vector(y = namePlateOffset)),
             BillboardConstraintProperty(AbstractDisplayMeta.BillboardConstraints.CENTER),
-            BackgroundColorProperty(Color.fromHex(namePlateColor))
+            BackgroundColorProperty(Color.fromHex(namePlateColor)),
+            InterpolationDurationProperty(Duration.ofMillis(100))
         )
         indicatorEntity.consumeProperties(
             TranslationProperty(calculateIndicatorOffset(hologramText)),
             BillboardConstraintProperty(AbstractDisplayMeta.BillboardConstraints.CENTER),
-            BackgroundColorProperty(Color.fromHex(namePlateColor))
+            BackgroundColorProperty(Color.fromHex(namePlateColor)),
+            InterpolationDurationProperty(Duration.ofMillis(100))
         )
     }
 
@@ -62,6 +69,20 @@ class NamedModelEngineEntity(
             when (property) {
                 is DisplayNameProperty -> {
                     displayName = property.displayName
+                }
+
+                is PositionProperty -> {
+                    val pos = property.add(0.0, baseEntity.height(), 0.0)
+                    hologram.consumeProperties(pos)
+                    indicatorEntity.consumeProperties(pos)
+                }
+
+                is ScaleProperty -> {
+                    val pos = baseEntity.property(PositionProperty.type)?.withY { it + baseEntity.height() }
+                    if (pos == null) return
+
+                    hologram.consumeProperties(pos)
+                    indicatorEntity.consumeProperties(pos)
                 }
             }
         }
