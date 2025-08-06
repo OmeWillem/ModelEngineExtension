@@ -1,4 +1,4 @@
-package entity
+package entries.entity
 
 import com.typewritermc.core.entries.Ref
 import com.typewritermc.core.utils.point.Vector

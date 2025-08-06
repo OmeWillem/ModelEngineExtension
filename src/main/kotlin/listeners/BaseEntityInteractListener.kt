@@ -9,7 +9,6 @@ import com.typewritermc.engine.paper.events.AsyncEntityDefinitionInteract
 import com.typewritermc.engine.paper.events.AsyncFakeEntityInteract
 import com.typewritermc.engine.paper.plugin
 import org.bukkit.Bukkit
-import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.inventory.EquipmentSlot
@@ -35,7 +34,7 @@ class BaseEntityInteractListener : Listener, KoinComponent {
             BaseEntityInteractEvent.Action.INTERACT -> WrapperPlayClientInteractEntity.InteractAction.INTERACT
             BaseEntityInteractEvent.Action.INTERACT_ON -> WrapperPlayClientInteractEntity.InteractAction.INTERACT_AT
             BaseEntityInteractEvent.Action.ATTACK -> WrapperPlayClientInteractEntity.InteractAction.ATTACK
-            else ->  WrapperPlayClientInteractEntity.InteractAction.INTERACT
+            else -> WrapperPlayClientInteractEntity.InteractAction.INTERACT
         }
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {

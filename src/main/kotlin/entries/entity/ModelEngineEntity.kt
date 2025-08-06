@@ -1,4 +1,4 @@
-package entity
+package entries.entity
 
 import com.ticxo.modelengine.api.ModelEngineAPI
 import com.ticxo.modelengine.api.entity.Dummy
@@ -24,7 +24,7 @@ class ModelEngineEntity(
         bodyRotationController.rotationDelay = 0
     }
     private lateinit var modeledEntity: ModeledEntity
-    private lateinit var activeModel : ActiveModel
+    private lateinit var activeModel: ActiveModel
 
     override val entityId: Int
         get() = entity.entityId

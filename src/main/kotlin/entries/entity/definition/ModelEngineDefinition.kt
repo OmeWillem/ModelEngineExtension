@@ -1,4 +1,4 @@
-package entity.definition
+package entries.entity.definition
 
 import com.typewritermc.core.books.pages.Colors
 import com.typewritermc.core.entries.Ref
@@ -13,10 +13,15 @@ import com.typewritermc.engine.paper.entry.entries.ConstVar
 import com.typewritermc.engine.paper.entry.entries.EntityData
 import com.typewritermc.engine.paper.entry.entries.Var
 import com.typewritermc.engine.paper.utils.Sound
-import entity.NamedModelEngineEntity
+import entries.entity.NamedModelEngineEntity
 import org.bukkit.entity.Player
 
-@Entry("modelengine_definition", "A simplified premade ModelEngine entity", Colors.ORANGE, "material-symbols:account-box")
+@Entry(
+    "modelengine_definition",
+    "A simplified premade ModelEngine entity",
+    Colors.ORANGE,
+    "material-symbols:account-box"
+)
 @Tags("modelengine_definition")
 class ModelEngineDefinition(
     override val id: String = "",
@@ -27,7 +32,7 @@ class ModelEngineDefinition(
     override val data: List<Ref<EntityData<*>>> = emptyList(),
     @Help("Set the model of the entity")
     val modelId: Var<String> = ConstVar(""),
-    ) : SimpleEntityDefinition {
+) : SimpleEntityDefinition {
 
     override fun create(player: Player): FakeEntity {
         return NamedModelEngineEntity(player, displayName, modelId, ref())
