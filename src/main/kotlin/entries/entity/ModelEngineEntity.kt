@@ -16,15 +16,18 @@ import com.typewritermc.engine.paper.utils.toBukkitLocation
 import com.typewritermc.entity.entries.data.minecraft.GlowingEffectProperty
 import com.typewritermc.entity.entries.data.minecraft.living.ScaleProperty
 import com.typewritermc.entity.entries.data.minecraft.living.armorstand.InvisibleProperty
+import entries.entity.definition.DefaultAnimationSettings
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicReference
 
 class ModelEngineEntity(
     player: Player,
-    modelId: Var<String>
+    modelId: Var<String>,
+    val defaultAnimationSettings: DefaultAnimationSettings,
 ) : FakeEntity(player) {
 
     private var entity: Dummy<*> = Dummy<Any?>().apply {
@@ -43,7 +46,8 @@ class ModelEngineEntity(
         get() = EntityState(height(), 0.2085f)
 
     val modelId = modelId.get(player)
-    private val location: Queue<Location> = ConcurrentLinkedQueue()
+    val location: Queue<Location> = ConcurrentLinkedQueue()
+    private var previousLocation : AtomicReference<Location> = AtomicReference<Location>()
 
     private var subscribeId: UUID? = null
     private var tickInThread: Boolean = false
@@ -95,8 +99,7 @@ class ModelEngineEntity(
 
     override fun spawn(location: PositionProperty) {
         if (modelId.isEmpty() || ModelEngineAPI.getBlueprint(modelId) == null) return
-        entity.syncLocation(location.toBukkitLocation())
-        this.location.add(location.toBukkitLocation())
+        entity.pollLocation(location.toBukkitLocation())
 
         modeledEntity = ModelEngineAPI.createModeledEntity(entity).apply {
             isModelRotationLocked = false
@@ -111,7 +114,11 @@ class ModelEngineEntity(
 
         if (callbackField != null) {
             subscribeId = entity.data.syncUpdateCallback.subscribe {
-                this.location.poll()?.let { entity.syncLocation(it) }
+                this.location.poll()?.let {
+                    if (defaultAnimationSettings.walkAnimation) entity.isWalking =
+                        isMoving(previousLocation.get(), it)
+                    entity.pollLocation(it)
+                }
             }
         } else tickInThread = true
 
@@ -146,6 +153,15 @@ class ModelEngineEntity(
         val scale = property(ScaleProperty::class)?.scale ?: 1.0
 
         return blueprint.mainHitbox.height * scale
+    }
+
+    fun isMoving(prev: Location, current: Location, threshold: Double = 0.01): Boolean {
+        return prev.distance(current) > threshold
+    }
+
+    fun Dummy<*>.pollLocation(location: Location) {
+        previousLocation.set(location)
+        syncLocation(location)
     }
 
 }

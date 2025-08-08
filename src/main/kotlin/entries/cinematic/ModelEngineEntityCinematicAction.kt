@@ -2,6 +2,7 @@ package entries.cinematic
 
 import com.github.retrooper.packetevents.protocol.player.EquipmentSlot.*
 import com.google.gson.Gson
+import com.typewritermc.core.utils.point.Coordinate
 import com.typewritermc.core.utils.point.distanceSqrt
 import com.typewritermc.engine.paper.content.modes.Streamer
 import com.typewritermc.engine.paper.content.modes.Tape
@@ -63,8 +64,27 @@ class ModelEngineEntityCinematicAction(
 
     override suspend fun startSegment(segment: ModelEngineEntityRecordedSegment) {
         super.startSegment(segment)
-        val recording = recordings[segment.artifact.id] ?: return
+
+        val recording = (recordings[segment.artifact.id] ?: return).toMutableMap()
         if (recording.isEmpty()) return
+        recording.keys.sorted().zipWithNext { a, b ->
+            if (b - a == 2) {
+                val prev = recording[a]?.location
+                val next = recording[b]?.location
+                if (prev != null && next != null) {
+                    recording[a + 1] = recording[a]!!.copy(
+                        location = Coordinate(
+                            x = (prev.x + next.x) / 2,
+                            y = (prev.y + next.y) / 2,
+                            z = (prev.z + next.z) / 2,
+                            yaw = (prev.yaw + next.yaw) / 2,
+                            pitch = (prev.pitch + next.pitch) / 2
+                        )
+                    )
+                }
+            }
+        }
+
         val definition = entry.definition.get() ?: return
         this.streamer = Streamer(recording)
         this.lastRelativeFrame = 0

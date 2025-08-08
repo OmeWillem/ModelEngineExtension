@@ -24,6 +24,7 @@ import com.typewritermc.entity.entries.entity.custom.namePlate
 import com.typewritermc.entity.entries.entity.custom.namePlateColor
 import com.typewritermc.entity.entries.entity.custom.namePlateOffset
 import com.typewritermc.entity.entries.entity.minecraft.TextDisplayEntity
+import entries.entity.definition.DefaultAnimationSettings
 import me.tofaa.entitylib.meta.display.AbstractDisplayMeta
 import org.bukkit.entity.Player
 import java.time.Duration
@@ -32,9 +33,10 @@ class NamedModelEngineEntity(
     player: Player,
     var displayName: Var<String>,
     modelId: Var<String>,
+    defaultAnimationSettings: DefaultAnimationSettings,
     definition: Ref<out EntityDefinitionEntry>,
 ) : FakeEntity(player) {
-    private val baseEntity = ModelEngineEntity(player, modelId)
+    private val baseEntity = ModelEngineEntity(player, modelId, defaultAnimationSettings)
     private val hologram = TextDisplayEntity(player)
     private val indicatorEntity = InteractionIndicatorEntity(player, definition)
 

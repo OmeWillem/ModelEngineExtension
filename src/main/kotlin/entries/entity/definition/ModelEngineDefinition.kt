@@ -3,8 +3,10 @@ package entries.entity.definition
 import com.typewritermc.core.books.pages.Colors
 import com.typewritermc.core.entries.Ref
 import com.typewritermc.core.entries.ref
+import com.typewritermc.core.extension.annotations.Default
 import com.typewritermc.core.extension.annotations.Entry
 import com.typewritermc.core.extension.annotations.Help
+import com.typewritermc.core.extension.annotations.Icon
 import com.typewritermc.core.extension.annotations.OnlyTags
 import com.typewritermc.core.extension.annotations.Tags
 import com.typewritermc.engine.paper.entry.entity.FakeEntity
@@ -16,6 +18,7 @@ import com.typewritermc.engine.paper.utils.Sound
 import entries.entity.ModelEngineEntity
 import entries.entity.NamedModelEngineEntity
 import org.bukkit.entity.Player
+import java.time.Duration
 
 @Entry(
     "modelengine_definition",
@@ -34,11 +37,19 @@ class ModelEngineDefinition(
     @Help("Set the model of the entity")
     val modelId: Var<String> = ConstVar(""),
     @Help("Whether the entity is named or not, showing a nametag.")
-    val named: Var<Boolean> = ConstVar(false)
+    val named: Var<Boolean> = ConstVar(false),
+    @Help("Configure if you want default animations to be used.")
+    val defaultAnimationSettings: DefaultAnimationSettings = DefaultAnimationSettings(),
+
 ) : SimpleEntityDefinition {
 
     override fun create(player: Player): FakeEntity {
-        if (named.get(player)) return NamedModelEngineEntity(player, displayName, modelId, ref())
-        return ModelEngineEntity(player, modelId)
+        if (named.get(player)) return NamedModelEngineEntity(player, displayName, modelId, defaultAnimationSettings, ref())
+        return ModelEngineEntity(player, modelId, defaultAnimationSettings)
     }
 }
+
+data class DefaultAnimationSettings(
+    @Help("Run the default walk animation if the entity is moving") @Default("true")
+    val walkAnimation: Boolean = true,
+)

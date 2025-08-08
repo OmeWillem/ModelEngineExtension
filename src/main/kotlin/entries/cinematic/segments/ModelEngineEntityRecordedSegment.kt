@@ -14,6 +14,5 @@ data class ModelEngineEntityRecordedSegment(
     @Help("The artifact for the recorded interactions data")
     @ContentEditor(EntityCinematicViewing::class)
     val artifact: Ref<EntityCinematicArtifact> = emptyRef(),
-    //@Segments(Colors.PURPLE, "fa6-solid:bolt-lightning")
     val animations: List<ModelEngineAnimationSegment> = emptyList(),
 ) : Segment
