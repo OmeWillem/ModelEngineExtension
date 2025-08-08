@@ -1,6 +1,7 @@
 package entries.entity
 
 import com.destroystokyo.paper.profile.ProfileProperty
+import com.github.retrooper.packetevents.protocol.player.EquipmentSlot
 import com.ticxo.modelengine.api.ModelEngineAPI
 import com.ticxo.modelengine.api.entity.Dummy
 import com.ticxo.modelengine.api.model.ActiveModel
@@ -14,12 +15,16 @@ import com.typewritermc.engine.paper.entry.entries.EntityProperty
 import com.typewritermc.engine.paper.entry.entries.Var
 import com.typewritermc.engine.paper.utils.toBukkitLocation
 import com.typewritermc.entity.entries.data.minecraft.GlowingEffectProperty
+import com.typewritermc.entity.entries.data.minecraft.living.EquipmentProperty
 import com.typewritermc.entity.entries.data.minecraft.living.ScaleProperty
 import com.typewritermc.entity.entries.data.minecraft.living.armorstand.InvisibleProperty
 import entries.entity.definition.DefaultAnimationSettings
+import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import org.bukkit.Bukkit
 import org.bukkit.Location
+import org.bukkit.entity.ItemDisplay
 import org.bukkit.entity.Player
+import org.bukkit.inventory.ItemStack
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicReference
@@ -47,7 +52,7 @@ class ModelEngineEntity(
 
     val modelId = modelId.get(player)
     val location: Queue<Location> = ConcurrentLinkedQueue()
-    private var previousLocation : AtomicReference<Location> = AtomicReference<Location>()
+    private var previousLocation: AtomicReference<Location> = AtomicReference<Location>()
 
     private var subscribeId: UUID? = null
     private var tickInThread: Boolean = false
@@ -84,6 +89,25 @@ class ModelEngineEntity(
                 is GlowingEffectProperty -> {
                     entity.isGlowing = property.glowing
                     entity.glowColor = property.color.color
+                }
+
+                is EquipmentProperty -> {
+                    val head = property.data[EquipmentSlot.HELMET]?.toBukkit()
+                    val mainHand = property.data[EquipmentSlot.MAIN_HAND]?.toBukkit()
+                    val offHand = property.data[EquipmentSlot.OFF_HAND]?.toBukkit()
+
+                    activeModel.bones.forEach { (_, bone) ->
+                        bone.getBoneBehavior(BoneBehaviorTypes.ITEM).ifPresent { behavior ->
+                            val itemToSet = when (behavior.display) {
+                                ItemDisplay.ItemDisplayTransform.HEAD -> head
+                                ItemDisplay.ItemDisplayTransform.THIRDPERSON_RIGHTHAND -> mainHand
+                                ItemDisplay.ItemDisplayTransform.THIRDPERSON_LEFTHAND -> offHand
+                                else -> null
+                            }
+
+                            itemToSet?.let { behavior.setItemProvider { it } }
+                        }
+                    }
                 }
 
                 else -> {
@@ -162,6 +186,10 @@ class ModelEngineEntity(
     fun Dummy<*>.pollLocation(location: Location) {
         previousLocation.set(location)
         syncLocation(location)
+    }
+
+    fun com.github.retrooper.packetevents.protocol.item.ItemStack.toBukkit(): ItemStack {
+        return SpigotConversionUtil.toBukkitItemStack(this)
     }
 
 }
