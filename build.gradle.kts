@@ -14,7 +14,7 @@ repositories {
 
 dependencies {
     compileOnly("com.typewritermc:EntityExtension:0.9.0")
-    compileOnly("com.ticxo.modelengine:ModelEngine:R4.0.4")
+    compileOnly("com.ticxo.modelengine:ModelEngine:R4.0.9")
 }
 
 typewriter {

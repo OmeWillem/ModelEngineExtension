@@ -151,4 +151,8 @@ class NamedModelEngineEntity(
         indicatorEntity.dispose()
     }
 
+    fun getEntity(): ModelEngineEntity {
+        return baseEntity
+    }
+
 }
