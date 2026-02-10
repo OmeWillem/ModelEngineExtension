@@ -13,9 +13,9 @@ import com.typewritermc.engine.paper.entry.entity.PositionProperty
 import com.typewritermc.engine.paper.entry.entity.SkinProperty
 import com.typewritermc.engine.paper.entry.entries.EntityProperty
 import com.typewritermc.engine.paper.entry.entries.Var
+import com.typewritermc.engine.paper.plugin
 import com.typewritermc.engine.paper.utils.toBukkitLocation
 import com.typewritermc.entity.entries.data.minecraft.GlowingEffectProperty
-import com.typewritermc.entity.entries.data.minecraft.SpeedData
 import com.typewritermc.entity.entries.data.minecraft.SpeedProperty
 import com.typewritermc.entity.entries.data.minecraft.living.EquipmentProperty
 import com.typewritermc.entity.entries.data.minecraft.living.ScaleProperty
@@ -29,6 +29,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 class ModelEngineEntity(
@@ -58,6 +59,7 @@ class ModelEngineEntity(
 
     private var subscribeId: UUID? = null
     private var tickInThread: Boolean = false
+    private val disposed = AtomicBoolean(false)
 
     override fun applyProperties(properties: List<EntityProperty>) {
         properties.forEach { property ->
@@ -124,41 +126,49 @@ class ModelEngineEntity(
     }
 
     override fun spawn(location: PositionProperty) {
-        if (modelId.isEmpty() || ModelEngineAPI.getBlueprint(modelId) == null) return
+        if (modelId.isEmpty() || disposed.get() || ModelEngineAPI.getBlueprint(modelId) == null) return
         entity.pollLocation(location.toBukkitLocation())
 
-        modeledEntity = ModelEngineAPI.createModeledEntity(entity).apply {
-            isModelRotationLocked = false
-        }
-        activeModel = ModelEngineAPI.createActiveModel(modelId)
-        modeledEntity.addModel(activeModel, true)
-        entity.setForceViewing(player, true)
-
-        // This only exists in the newer developer builds, so there's a little fallback
-        val callbackField = entity.data::class.members
-            .find { it.name == "syncUpdateCallback" }
-
-        if (callbackField != null) {
-            subscribeId = entity.data.syncUpdateCallback.subscribe {
-                this.location.poll()?.let {
-                    if (defaultAnimationSettings.walkAnimation) entity.isWalking =
-                        isMoving(previousLocation.get(), it)
-                    entity.pollLocation(it)
-                }
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            if (disposed.get()) return@Runnable
+            
+            modeledEntity = ModelEngineAPI.createModeledEntity(entity).apply {
+                isModelRotationLocked = false
             }
-        } else tickInThread = true
+            activeModel = ModelEngineAPI.createActiveModel(modelId)
+            modeledEntity.addModel(activeModel, true)
+            entity.setForceViewing(player, true)
+
+            // This only exists in the newer developer builds, so there's a little fallback
+            val callbackField = entity.data::class.members
+                .find { it.name == "syncUpdateCallback" }
+
+            if (callbackField != null) {
+                subscribeId = entity.data.syncUpdateCallback.subscribe {
+                    this.location.poll()?.let {
+                        if (defaultAnimationSettings.walkAnimation) entity.isWalking =
+                            isMoving(previousLocation.get(), it)
+                        entity.pollLocation(it)
+                    }
+                }
+            } else tickInThread = true
+        })
 
         super.spawn(location)
     }
 
     override fun dispose() {
-        if (!::activeModel.isInitialized) return
-        if (subscribeId != null) {
-            entity.data.syncUpdateCallback.unsubscribe(subscribeId!!)
-        }
-
-        activeModel.isRemoved = true
-        entity.isRemoved = true
+        if (disposed.getAndSet(true)) return
+        
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            if (::activeModel.isInitialized) {
+                if (subscribeId != null) {
+                    entity.data.syncUpdateCallback.unsubscribe(subscribeId!!)
+                }
+                activeModel.isRemoved = true
+            }
+            entity.isRemoved = true
+        })
     }
 
     override fun addPassenger(entity: FakeEntity) {
