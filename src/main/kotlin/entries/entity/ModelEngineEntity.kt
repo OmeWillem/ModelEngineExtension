@@ -46,6 +46,19 @@ class ModelEngineEntity(
     private lateinit var modeledEntity: ModeledEntity
     lateinit var activeModel: ActiveModel
 
+    private val pendingModelTasks = ConcurrentLinkedQueue<(ActiveModel) -> Unit>()
+
+    val isModelReady: Boolean
+        get() = ::activeModel.isInitialized && ::modeledEntity.isInitialized
+
+    fun whenModelReady(block: (ActiveModel) -> Unit) {
+        if (isModelReady) {
+            block(activeModel)
+            return
+        }
+        pendingModelTasks.add(block)
+    }
+
     override val entityId: Int
         get() = entity.entityId
 
@@ -155,12 +168,18 @@ class ModelEngineEntity(
             } else tickInThread = true
 
             applyProperties(properties.values.toList())
+
+            while (true) {
+                val task = pendingModelTasks.poll() ?: break
+                task(activeModel)
+            }
         }
 
         super.spawn(location)
     }
 
     override fun dispose() {
+        pendingModelTasks.clear()
         if (!::activeModel.isInitialized) return
         if (subscribeId != null) {
             entity.data.syncUpdateCallback.unsubscribe(subscribeId!!)
@@ -199,6 +218,9 @@ class ModelEngineEntity(
     }
 
     fun isMoving(prev: Location, current: Location, threshold: Double = 0.01): Boolean {
+        // Crossing worlds (e.g. cinematic_world → world during a stage swap)
+        // counts as movement and would otherwise throw from Location.distance.
+        if (prev.world != current.world) return true
         return prev.distance(current) > threshold
     }
 

@@ -1,6 +1,8 @@
 package entries.action
 
 import com.ticxo.modelengine.api.ModelEngineAPI
+import com.ticxo.modelengine.api.animation.handler.AnimationHandler
+import com.ticxo.modelengine.api.animation.handler.IStateMachineHandler
 import com.typewritermc.core.books.pages.Colors
 import com.typewritermc.core.entries.Ref
 import com.typewritermc.core.entries.emptyRef
@@ -42,13 +44,9 @@ class PlayAnimationEntry(
         val entityId = display.entityId(player.uniqueId)
         val entity = ModelEngineAPI.getModeledEntity(entityId) ?: return
 
+        val animationName = animation.get(player)
         entity.models.forEach { model ->
-            model.value.animationHandler.playAnimation(
-                animation.get(player),
-                animationSettings.lerpIn.toMillis() / 1000.0,
-                animationSettings.lerpOut.toMillis() / 1000.0,
-                animationSettings.speed, animationSettings.force
-            )
+            model.value.animationHandler.playAnimationWithPriority(animationName, animationSettings)
         }
     }
 }
@@ -61,5 +59,42 @@ data class AnimationSettings(
     @Help("The speed of the animation.") @Default("1")
     val speed: Double = 1.0,
     @Help("Force the animation.")
-    val force: Boolean = false
+    val force: Boolean = false,
+    @Help("State machine priority slot. Leave at -1 to auto-assign a stable slot per animation name (so distinct animations stack). Set a positive value to pin a specific slot.")
+    @Default("-1")
+    val priority: Int = -1,
 )
+
+// Offset from 0/1 so we never clobber ModelEngine's built-in state machine
+// (slot 0, walk/idle/jump) or the default "plain" playAnimation slot (1).
+private fun resolvePriority(explicit: Int, animation: String): Int {
+    if (explicit >= 0) return explicit
+    return 10 + ((animation.hashCode() and 0x7FFFFFFF) % 1000)
+}
+
+internal fun AnimationHandler.playAnimationWithPriority(
+    animation: String,
+    settings: AnimationSettings,
+) {
+    val priority = resolvePriority(settings.priority, animation)
+    val lerpIn = settings.lerpIn.toMillis() / 1000.0
+    val lerpOut = settings.lerpOut.toMillis() / 1000.0
+    if (this is IStateMachineHandler) {
+        playAnimation(priority, animation, lerpIn, lerpOut, settings.speed, settings.force)
+    } else {
+        playAnimation(animation, lerpIn, lerpOut, settings.speed, settings.force)
+    }
+}
+
+internal fun AnimationHandler.stopAnimationWithPriority(
+    animation: String,
+    explicitPriority: Int,
+    force: Boolean,
+) {
+    val priority = resolvePriority(explicitPriority, animation)
+    if (this is IStateMachineHandler) {
+        if (force) forceStopAnimation(priority, animation) else stopAnimation(priority, animation)
+    } else {
+        if (force) forceStopAnimation(animation) else stopAnimation(animation)
+    }
+}

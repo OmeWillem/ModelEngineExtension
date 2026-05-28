@@ -23,6 +23,8 @@ import com.typewritermc.entity.entries.data.minecraft.living.DamagedProperty
 import com.typewritermc.entity.entries.data.minecraft.living.EquipmentProperty
 import com.typewritermc.entity.entries.data.minecraft.living.UseItemProperty
 import com.typewritermc.entity.entries.data.minecraft.toProperty
+import entries.action.playAnimationWithPriority
+import entries.action.stopAnimationWithPriority
 import entries.cinematic.segments.ModelEngineEntityRecordedSegment
 import entries.entity.ModelEngineEntity
 import entries.entity.NamedModelEngineEntity
@@ -150,27 +152,19 @@ class ModelEngineEntityCinematicAction(
             val animation = it.animation.get(player)
             val animationSettings = it.animationSettings
             val stop = it.stop.get(player)
-            val animationHandler = entity()?.activeModel?.animationHandler ?: return
+            val modelEntity = entity() ?: return@forEach
 
-            if (stop) {
-                if (animation.isEmpty()) {
-                    animationHandler.forceStopAllAnimations()
-                    return
+            modelEntity.whenModelReady { model ->
+                val animationHandler = model.animationHandler
+                if (stop) {
+                    if (animation.isEmpty()) {
+                        animationHandler.forceStopAllAnimations()
+                    } else {
+                        animationHandler.stopAnimationWithPriority(animation, animationSettings.priority, animationSettings.force)
+                    }
+                } else {
+                    animationHandler.playAnimationWithPriority(animation, animationSettings)
                 }
-
-                if (animationSettings.force) {
-                    animationHandler.forceStopAnimation(animation)
-                    return
-                }
-
-                animationHandler.stopAnimation(animation)
-            } else {
-                animationHandler.playAnimation(
-                    animation,
-                    animationSettings.lerpIn.toMillis() / 1000.0,
-                    animationSettings.lerpOut.toMillis() / 1000.0,
-                    animationSettings.speed, animationSettings.force
-                )
             }
         }
 

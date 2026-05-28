@@ -44,13 +44,9 @@ class PlayAdvancedAnimationEntry(
         val entityId = display.entityId(player.uniqueId)
         val entity = ModelEngineAPI.getModeledEntity(entityId) ?: return
 
+        val animationName = animation.get(player)
         entity.models.forEach { model ->
-            model.value.animationHandler.playAnimation(
-                animation.get(player),
-                animationSettings.lerpIn.toMillis() / 1000.0,
-                animationSettings.lerpOut.toMillis() / 1000.0,
-                animationSettings.speed, animationSettings.force
-            )
+            model.value.animationHandler.playAnimationWithPriority(animationName, animationSettings)
         }
     }
 }

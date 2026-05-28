@@ -4,6 +4,7 @@ import com.ticxo.modelengine.api.ModelEngineAPI
 import com.typewritermc.core.books.pages.Colors
 import com.typewritermc.core.entries.Ref
 import com.typewritermc.core.entries.emptyRef
+import com.typewritermc.core.extension.annotations.Default
 import com.typewritermc.core.extension.annotations.Entry
 import com.typewritermc.core.extension.annotations.Help
 import com.typewritermc.engine.paper.entry.AudienceManager
@@ -33,6 +34,9 @@ class StopAdvancedAnimationEntry(
     val animation: Var<String> = ConstVar("idle"),
     @Help("Force an animation to stop.")
     val force: Var<Boolean> = ConstVar(false),
+    @Help("State machine priority slot. Leave at -1 to auto-resolve from the animation name (matching the play entry's auto slot), or pin the same explicit value you used when playing.")
+    @Default("-1")
+    val priority: Int = -1,
 ) : ActionEntry, KoinComponent {
 
     private val audienceManager: AudienceManager by inject()
@@ -43,18 +47,13 @@ class StopAdvancedAnimationEntry(
         val entity = ModelEngineAPI.getModeledEntity(entityId) ?: return
         val name = animation.get(player)
 
+        val shouldForce = force.get(player)
         entity.models.forEach { model ->
             if (name.isEmpty()) {
                 model.value.animationHandler.forceStopAllAnimations()
-                return
+                return@forEach
             }
-
-            if (force.get(player)) {
-                model.value.animationHandler.forceStopAnimation(name)
-                return
-            }
-
-            model.value.animationHandler.stopAnimation(name)
+            model.value.animationHandler.stopAnimationWithPriority(name, priority, shouldForce)
         }
     }
 }
